@@ -1,0 +1,51 @@
+---
+title: C4 · Контейнеры | Создание фототура Airbnb
+config:
+  theme: base
+  look: classic
+  htmlLabels: false
+  themeVariables:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "16px"
+  flowchart:
+    wrappingWidth: 250
+    nodeSpacing: 36
+    rankSpacing: 44
+    curve: linear
+---
+flowchart TB
+    host["Хозяин объявления<br/>[Человек]"]
+    listings["Сервис объявлений<br/>[Внешняя система]"]
+    photos["Хранилище фотографий<br/>[Внешняя система]"]
+
+    subgraph system[Система создания фототура]
+        editor["Веб-редактор фототура<br/>[Веб-приложение · JavaScript]<br/>Показывает группы, принимает правки"]
+        tour["Сервис фототуров<br/>[Сервис · Python / FastAPI]<br/>Распределяет фото или оставляет их<br/>в разделе «Дополнительные фото»"]
+        ml["ML-сервис классификации<br/>[Сервис · Python / FastAPI / ONNX Runtime]<br/>Определяет тип помещения по фото"]
+        labels[("Хранилище разметки<br/>[База данных · PostgreSQL]")]
+        training["Задача обучения<br/>[Пакетная задача · Python / PyTorch]<br/>Обучает и проверяет модель"]
+        registry["Реестр моделей<br/>[Сервис · MLflow]<br/>Хранит версии и выдаёт ONNX-артефакты"]
+
+        editor -->|"Запрашивает сортировку,<br/>передаёт правки для сохранения"| tour
+        tour -->|"Возвращает черновик<br/>и сохранённые группы"| editor
+        tour -->|"Передаёт ID фото<br/>и подписанные ссылки"| ml
+        ml -->|"Возвращает тип помещения,<br/>оценку или ошибку по фото<br/>и версию модели"| tour
+        tour -->|"Записывает явные назначения<br/>и переносы после сохранения"| labels
+        training -->|"Читает ID фото и типы<br/>помещений из разметки"| labels
+        training -->|"Публикует проверенный ONNX<br/>и назначает алиас production"| registry
+        ml -->|"Получает версию по алиасу production<br/>и загружает ONNX"| registry
+    end
+
+    host -->|"Запускает сортировку,<br/>правит и сохраняет группы"| editor
+    editor -->|"Показывает группы фото"| host
+    tour -->|"Читает ID фото и подписанные ссылки,<br/>записывает группы фототура"| listings
+    ml -->|"Читает пиксели фото<br/>по подписанным ссылкам"| photos
+    training -->|"Читает фото для обучения<br/>по ID с отдельным доступом"| photos
+
+    classDef person fill:#fff2de,stroke:#ad6d1e,color:#23202b
+    classDef container fill:#dbeafe,stroke:#2563a8,color:#142741
+    classDef external fill:#edf1f5,stroke:#748396,color:#253447
+    class host person
+    class editor,tour,ml,labels,training,registry container
+    class listings,photos external
+    style system fill:#f5f9ff,stroke:#7191b5,color:#142741

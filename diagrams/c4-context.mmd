@@ -1,0 +1,32 @@
+---
+title: C4 · Контекст | Создание фототура Airbnb
+config:
+  theme: base
+  look: classic
+  htmlLabels: false
+  themeVariables:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "16px"
+  flowchart:
+    wrappingWidth: 250
+    nodeSpacing: 36
+    rankSpacing: 44
+    curve: linear
+---
+flowchart LR
+    host["Хозяин объявления<br/>[Человек]"]
+    tour["Система создания фототура<br/>[Программная система]<br/>Предлагает группы фото по типу помещения"]
+    listings["Сервис объявлений<br/>[Внешняя система]"]
+    photos["Хранилище фотографий<br/>[Внешняя система]"]
+
+    host -->|"Запускает сортировку, правит<br/>и сохраняет группы"| tour
+    tour -->|"Показывает предложенные<br/>и сохранённые группы фото"| host
+    tour -->|"Читает список фото объявления,<br/>записывает группы фототура"| listings
+    tour -->|"Получает изображения<br/>по ссылкам на фото"| photos
+
+    classDef person fill:#fff2de,stroke:#ad6d1e,color:#23202b
+    classDef system fill:#dbeafe,stroke:#2563a8,color:#142741
+    classDef external fill:#edf1f5,stroke:#748396,color:#253447
+    class host person
+    class tour system
+    class listings,photos external

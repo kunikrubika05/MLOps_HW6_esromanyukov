@@ -1,0 +1,73 @@
+---
+title: BPMN · Создание первого фототура Airbnb
+config:
+  theme: base
+  look: classic
+  htmlLabels: false
+  fontFamily: "Arial, sans-serif"
+  deterministicIds: true
+  themeCSS: |
+    .edgeLabel text { paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+  themeVariables:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "16px"
+  flowchart:
+    curve: linear
+    nodeSpacing: 30
+    rankSpacing: 23
+    titleTopMargin: 64
+    diagramPadding: 16
+    wrappingWidth: 172
+    padding: 12
+---
+swimlane-beta TB
+    accTitle: Создание первого фототура Airbnb
+    accDescr: Хозяин запускает сортировку, проверяет распределение фото и сохраняет фототур. Сервис распределяет уверенно распознанные фото, а остальные оставляет хозяину для ручного назначения. Явные назначения поступают в хранилище разметки.
+
+    subgraph HOST [Хозяин объявления]
+        start_event((" ")):::event
+        request("Нажать «Создать фототур»")
+        review("Проверить распределение<br/>фото по комнатам")
+        edit_needed{"×"}
+        edit("Назначить или<br/>исправить комнату")
+        confirm("Сохранить фототур")
+        result("Увидеть сохранённые<br/>группы фото")
+        end_event((" ")):::endEvent
+    end
+
+    subgraph TOUR [Контур фототура и классификации]
+        input("Получить ссылки на фото<br/>из Сервиса объявлений")
+        classify("Вызвать ML-сервис<br/>классификации фото<br/>с тайм-аутом")
+        response{"×"}
+        group("Разложить фото<br/>по типам комнат")
+        fallback("Разложить уверенные фото<br/>Остальные оставить<br/>в «Дополнительных фото»")
+        draft("Показать черновик в<br/>Веб-редакторе фототура")
+        persist("Сохранить группы в<br/>Сервисе объявлений")
+        feedback_needed{"×"}
+        feedback("Записать ручные метки<br/>для оценки и обучения")
+        labels[("Хранилище разметки")]
+    end
+
+    start_event --> request --> input
+    input -->|"Ссылки на фото"| classify
+    classify -->|"Типы, оценки, версия<br/>или статус ошибки"| response
+    response -->|"У всех фото есть тип<br/>и оценка ≥ 0,80"| group
+    response -->|"Сбой, тайм-аут либо<br/>есть снимок без типа, без оценки<br/>или с оценкой ниже 0,80"| fallback
+    group --> draft
+    fallback --> draft
+    draft --> review --> edit_needed
+    edit_needed -->|"Есть правки"| edit --> confirm
+    edit_needed -->|"Без правок"| confirm
+    confirm --> persist --> feedback_needed
+    feedback_needed -->|"Есть ручные назначения"| feedback --> result
+    feedback_needed -->|"Нет ручных назначений"| result
+    result --> end_event
+    feedback -.-> labels
+
+    classDef default fill:#fff,stroke:#344256,stroke-width:1.5px,color:#122337
+    classDef event fill:#fff,stroke:#0f5262,stroke-width:1.5px
+    classDef endEvent fill:#fff,stroke:#0f5262,stroke-width:4px
+    classDef model fill:#d9f1ef,stroke:#0e6566,stroke-width:2px,color:#0a4144
+    class classify model
+    style HOST fill:#f4f7fc,stroke:#8a9bb2,color:#132741
+    style TOUR fill:#f7f8fc,stroke:#8a9bb2,color:#132741

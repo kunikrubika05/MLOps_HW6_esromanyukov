@@ -1,0 +1,42 @@
+---
+title: C4 · Компоненты | ML-сервис классификации
+config:
+  theme: base
+  look: classic
+  htmlLabels: false
+  themeVariables:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "16px"
+  flowchart:
+    wrappingWidth: 250
+    nodeSpacing: 36
+    rankSpacing: 44
+    curve: linear
+---
+flowchart TB
+    request["Вход от Сервиса фототуров<br/>ID фото и подписанные ссылки"]
+    response["Выход в Сервис фототуров<br/>Тип помещения и оценка или ошибка по фото,<br/>версия модели при успешном выборе"]
+
+    subgraph ml[ML-сервис классификации]
+        api["API классификации<br/>[Компонент · FastAPI]<br/>Обрабатывает запрос на пакет фото"]
+        registry["Выбор версии модели<br/>[Компонент · MLflow Client]<br/>Получает версию по алиасу production<br/>и загружает ONNX из Реестра моделей"]
+        prepare["Подготовка изображений<br/>[Компонент · Python / Pillow]<br/>Получает фото из Хранилища фотографий,<br/>декодирует, масштабирует и нормализует"]
+        classify["Классификатор помещений<br/>[Компонент · ONNX Runtime]<br/>Вычисляет тип помещения и оценку"]
+
+        api -->|"Запрашивает версию<br/>один раз на пакет"| registry
+        api -->|"Передаёт ID фото<br/>и подписанные ссылки"| prepare
+        registry -->|"Передаёт артефакт<br/>и ID выбранной версии"| classify
+        prepare -->|"Передаёт ID фото<br/>и тензоры пикселей"| classify
+        classify -->|"Возвращает оценки<br/>по фото и версию"| api
+        prepare -->|"Сообщает ID фото,<br/>которые не удалось подготовить"| api
+        registry -->|"Сообщает об ошибке<br/>выбора или загрузки версии"| api
+    end
+
+    request --> api
+    api --> response
+
+    classDef component fill:#dbeafe,stroke:#2563a8,color:#142741
+    classDef port fill:#fff,stroke:#fff,color:#253447
+    class api,registry,prepare,classify component
+    class request,response port
+    style ml fill:#f5f9ff,stroke:#7191b5,color:#142741
